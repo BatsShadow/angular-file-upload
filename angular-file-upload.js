@@ -16,6 +16,7 @@ var app = angular.module('angularFileUpload', []);
 // It is attached to an element that catches the event drop file
 app.directive('ngFileDrop', ['$fileUploader', '$timeout', function ($fileUploader, $timeout) {
     'use strict';
+    // Fix for dragdrop children problems technique from: http://stackoverflow.com/a/10906204
     var dragdropCollection = $();
 
     return {
