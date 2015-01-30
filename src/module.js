@@ -31,8 +31,8 @@ module
     })
 
 
-    .factory('FileUploader', ['fileUploaderOptions', '$rootScope', '$http', '$window', '$compile',
-        function(fileUploaderOptions, $rootScope, $http, $window, $compile) {
+    .factory('FileUploader', ['fileUploaderOptions', '$rootScope', '$http', '$window', '$compile', '$timeout',
+        function(fileUploaderOptions, $rootScope, $http, $window, $compile, $timeout) {
             /**
              * Creates an instance of FileUploader
              * @param {Object} [options]
@@ -1124,6 +1124,10 @@ module
              * @return {Array<Function>|String|undefined}
              */
             FileDrop.prototype.getFilters = function() {};
+
+            // Fix for dragdrop children problems technique from: http://stackoverflow.com/a/10906204
+            var dragdropCollection = $();
+
             /**
              * Event handler
              */
@@ -1133,6 +1137,7 @@ module
                 var options = this.getOptions();
                 var filters = this.getFilters();
                 this._preventAndStop(event);
+                dragdropCollection = $();
                 angular.forEach(this.uploader._directives.over, this._removeOverClass, this);
                 this.uploader.addToQueue(transfer.files, options, filters);
             };
@@ -1140,19 +1145,39 @@ module
              * Event handler
              */
             FileDrop.prototype.onDragOver = function(event) {
+                // Only start if collection is empty
+                if (0 != dragdropCollection.size()) {
+                    // This line duplicated from below for easier merging
+                    dragdropCollection = dragdropCollection.add(event.target);
+                    return;
+                }
+                // Here is the original implementation
                 var transfer = this._getTransfer(event);
                 if(!this._haveFiles(transfer.types)) return;
                 transfer.dropEffect = 'copy';
                 this._preventAndStop(event);
                 angular.forEach(this.uploader._directives.over, this._addOverClass, this);
+
+                // Back to our custom changes
+                dragdropCollection = dragdropCollection.add(event.target);
             };
             /**
              * Event handler
              */
-            FileDrop.prototype.onDragLeave = function(event) {
-                if (event.currentTarget !== this.element[0]) return;
+            FileDrop.prototype._realOnDragLeave = function(event) {
+                // if (event.currentTarget !== this.element[0]) return;
                 this._preventAndStop(event);
                 angular.forEach(this.uploader._directives.over, this._removeOverClass, this);
+            };
+            FileDrop.prototype.onDragLeave = function(event) {
+                var _this = this;
+                // We need a timeout because some browsers trigger dragleave before dragover
+                $timeout(function() {
+                    dragdropCollection = dragdropCollection.not(event.target);
+                    if (0 == dragdropCollection.size()) {
+                        _this._realOnDragLeave(event);
+                    }
+                }, 1);
             };
             /**
              * Helper
