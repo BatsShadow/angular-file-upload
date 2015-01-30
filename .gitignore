@@ -1,5 +1,6 @@
 .temp
 .idea
+*.iml
 node_modules
 bower_components
 *.sublime-project
