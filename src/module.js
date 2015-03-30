@@ -541,6 +541,8 @@ module
 
                         // fixed angular.contents() for iframes
                         var html = iframe[0].contentDocument.body.innerHTML;
+                        // Fix for IE adding <pre> tag around JSON response
+                        html = angular.element(html).html();
                     } catch (e) {}
 
                     var xhr = {response: html, status: 200, dummy: true};
